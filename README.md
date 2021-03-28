@@ -64,11 +64,11 @@ async function onInstall(event) {
             cache: "reload",
         });
     });
-	for (const request of assetsRequests){
-		await caches.open(cacheName).then(cache => cache.add(request)).catch(error => {
-			console.error("Failed to cache:", request, error);
-		});
-	}
+    for (const request of assetsRequests){
+        await caches.open(cacheName).then(cache => cache.add(request)).catch(error => {
+            console.error("Failed to cache:", request, error);
+        });
+    }
 }
 
 // Cleanup old caches
