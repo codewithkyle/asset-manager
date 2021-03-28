@@ -22,7 +22,7 @@ npm i -S @codewithkyle/asset-manager
 
 ### asset-manager.config.js
 
-Note that the `publicDir` value should be a path accessible to the Service Worker.
+Note that the `publicDir` value should be a path relative to your projects root web directory and it should be accessible to the Service Worker (within it's scope).
 
 ```javascript
 module.exports = {
