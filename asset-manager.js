@@ -48,7 +48,7 @@ for (let i = 0; i < allFiles.length; i++){
 }
 
 var crypto = require('crypto');
-var name = `${allFiles.length}-${totalSize}`;
+var name = `${allFiles.length}-${totalSize}-${new Date().getTime()}`;
 var hash = crypto.createHash('md5').update(name).digest('hex');
 
 if (fs.existsSync(outFile)){
