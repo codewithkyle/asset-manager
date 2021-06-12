@@ -60,7 +60,7 @@ const cacheName = `${cacheNamePrefix}${self.manifest.version}`;
 async function onInstall(event) {
     self.skipWaiting();
     const assetsRequests = self.manifest.assets.map(asset => {
-        return new Request(asset.url, {
+        return new Request(asset, {
             cache: "reload",
         });
     });
