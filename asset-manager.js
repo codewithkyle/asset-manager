@@ -36,7 +36,9 @@ for (let i = 0; i < config.src.length; i++){
     const newFiles = glob.sync(config.src[i].files) ?? [];
     allFiles = [...allFiles, ...newFiles];
     for (let j = 0; j < newFiles.length; j++){
-        publicFiles.push(`/${config.src[i].publicDir.replace(/^\/|\/$/g, "").trim()}/${newFiles[j].replace(/.*[\/\\]/, "").trim()}`);
+        const pubDir = config.src[i].publicDir.replace(/^\/|\/$/g, "").trim();
+        const file = newFiles[j].replace(/.*[\/\\]/, "").trim();
+        publicFiles.push(`${pubDir.length ? `/${pubDir}` : ""}/${file}`);
     }
 }
 
