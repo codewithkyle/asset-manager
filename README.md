@@ -50,11 +50,22 @@ module.exports = {
         "serviceWorker" in navigator
     ) {
         navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+        navigator.serviceWorker.addEventListener("message", (e) => {
+            localStorage.setItem("version", e.data);
+        });
         navigator.serviceWorker.ready.then(async (registration) => {
-            await import("/service-worker-assets.js?t=" + Date.now());
-            if (self.manifest.version !== localStorage.getItem("version")) {
+            try {
+                await import("/service-worker-assets.js?t=" + Date.now());
+                if (self.manifest.version !== localStorage.getItem("version")) {
+                    localStorage.removeItem("version");
+                } else {
+                    delete self.manifest.assets;
+                }
                 registration.active.postMessage(self.manifest);
-                localStorage.setItem("version", self.manifest.version);
+            } catch (e) {
+                registration.active.postMessage({
+                    version: localStorage.getItem("version") || "init",
+                });
             }
         });
     }
@@ -68,9 +79,8 @@ self.addEventListener("activate", (event) =>
 );
 self.addEventListener("fetch", (event) => event.respondWith(onFetch(event)));
 
-self.importScripts("./service-worker-assets.js?t=" + Date.now());
 let cacheNamePrefix = "resource-cache";
-let cacheName = `${cacheNamePrefix}-${self.manifest.version}`;
+let cacheName = "";
 
 // Cache files when the service worker is installed or updated
 async function onInstall(event) {
@@ -85,15 +95,7 @@ async function onActivate(event) {
 
 // Try to respond with cached files
 async function onFetch(event) {
-    // Remove navigate if you're not building an SPA
-    if (event.request.mode === "navigate") {
-        const cache = await caches.open(cacheName);
-        const cachedResponse = await cache.match("index.html");
-        return cachedResponse;
-    } else if (
-        event.request.method === "GET" &&
-        event.request.url.indexOf(self.origin) === 0
-    ) {
+    if (event.request.url.indexOf(self.origin) === 0) {
         const cache = await caches.open(cacheName);
         const cachedResponse = await cache.match(event.request);
         if (cachedResponse) {
@@ -105,19 +107,6 @@ async function onFetch(event) {
 
 self.addEventListener("message", async (event) => {
     cacheName = `${cacheNamePrefix}-${event.data.version}`;
-    const assetsRequests = self.manifest.assets.map((asset) => {
-        return new Request(asset, {
-            cache: "reload",
-        });
-    });
-    for (const request of assetsRequests) {
-        await caches
-            .open(cacheName)
-            .then((cache) => cache.add(request))
-            .catch((error) => {
-                console.error("Failed to cache:", request, error);
-            });
-    }
     const cacheKeys = await caches.keys();
     await Promise.all(
         cacheKeys
@@ -126,5 +115,30 @@ self.addEventListener("message", async (event) => {
             )
             .map((key) => caches.delete(key))
     );
+    if (event.data?.assets) {
+        const assetsRequests = event.data.assets.map((asset) => {
+            return new Request(asset, {
+                cache: "reload",
+            });
+        });
+        for (const request of assetsRequests) {
+            await caches
+                .open(cacheName)
+                .then((cache) => cache.add(request))
+                .catch((error) => {
+                    console.error("Failed to cache:", request, error);
+                });
+        }
+    }
+    self.clients
+        .matchAll({
+            includeUncontrolled: true,
+            type: "window",
+        })
+        .then((clients) => {
+            if (clients && clients.length) {
+                clients[0].postMessage(event.data.version);
+            }
+        });
 });
 ```
